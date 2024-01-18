@@ -72,8 +72,12 @@ signed main() {
             cin >> pos >> val;
             if (choice == "Vector")
                 tree.a[pos] = val;
-            else
-                tree.b[pos] = make_pair(val, val2);
+            else {
+                if (!element_of_pair)
+                    tree.b[pos].first = val;
+                else
+                    tree.b[pos].second = val;
+            }
             tree.update(1, 0, n - 1, pos);
         } else {
             tree.print();
