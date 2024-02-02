@@ -55,8 +55,8 @@ public:
         if (l == tl && r == tr)
             return choice == "Pair" ? (!element_of_pair ? pair_tree[v].first : pair_tree[v].second) : tree[v];
         ll tm = (tl + tr) >> 1;
-        return get_function((v << 1), tl, tm, l, min(r, tm))
-            + get_function((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r);
+        return func(get_function((v << 1), tl, tm, l, min(r, tm)),
+             get_function((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r));
     }
     void update(ll v, ll tl, ll tr, ll i) {
         if (tree.size() <= v || v < 0) return;
