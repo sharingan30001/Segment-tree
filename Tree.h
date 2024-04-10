@@ -2,100 +2,99 @@
 #define TREE_H
 #include <bits/stdc++.h>
 
+using namespace std;
+
 using ll = long long;
 using ull = unsigned long long;
 using ld = long double;
+using pll = pair <ll, ll>;
+using vll = vector <ll>;
 
-using namespace std;
+const ll MAXN = 1e5;
+ll t[MAXN << 2];
+ll lazy[MAXN << 2];
 
 class Tree {
-
-private:
+ private:
     ll n;
-    vector <pair <ll, ll>> pair_tree;
-    vector <ll> tree;
     void build(ll v, ll tl, ll tr) {
         if (tl == tr) {
-            if (choice == "Pair") pair_tree[v] = b[tl];
-            else tree[v] = a[tl];
+            t[v] = a[tl];
             return;
         }
         ll tm = (tl + tr) >> 1;
-        build((v << 1), tl, tm);
+        build(v << 1, tl, tm);
         build((v << 1) + 1, tm + 1, tr);
-        if (choice == "Pair") {
-            pair_tree[v].first = func(pair_tree[v << 1].first, pair_tree[(v << 1) + 1].first);
-            pair_tree[v].second = func(pair_tree[v << 1].second, pair_tree[(v << 1) + 1].second);
-        } else {
-            tree[v] = func(tree[v << 1], tree[(v << 1) + 1]);
-        }
+        t[v] = func(t[v << 1], t[(v << 1) + 1]);
     }
-
-public:
-    string choice;
-    bool element_of_pair = false;
-    vector <pair <ll, ll>> b;
-    vector <ll> a;
+    void push(ll v, ll val) {
+        lazy[v << 1] += val;
+        lazy[(v << 1) + 1] += val;
+        return;
+    }
+ public:
+    vll a;
     function <ll (ll, ll)> func;
-    Tree(ll n, const vector <ll> &a, const vector <pair <ll, ll>> &b,
-        const string &choice, function <ll (ll, ll)> func, bool element_of_pair) {
-        this -> n = n;
+    Tree(const vll &a, auto func) {
         this -> a = a;
-        this -> b = b;
-        this -> choice = choice;
         this -> func = func;
-        this -> element_of_pair = element_of_pair;
-        tree.resize(n << 2);
-        pair_tree.resize(n << 2);
-        build(1, 0, n - 1);
+        build(1, 0, a.size() - 1);
     }
     ll get_function(ll v, ll tl, ll tr, ll l, ll r) {
-        if (l > r)
+        if (tl > tr || tl > r || tr < l || l > r)
             return 0;
-        if (l == tl && r == tr)
-            return choice == "Pair" ? (!element_of_pair ? pair_tree[v].first : pair_tree[v].second) : tree[v];
+        if (lazy[v] != 0) {
+            t[v] += lazy[v];
+            if (tl != tr)
+                push(v, lazy[v]);
+            lazy[v] = 0;
+        }
+        if (tl >= l && tr <= r)
+            return t[v];
         ll tm = (tl + tr) >> 1;
-        return func(get_function((v << 1), tl, tm, l, min(r, tm)),
-             get_function((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r));
+        ll f1 = get_function((v << 1), tl, tm, l, min(tm, r));
+        ll f2 = get_function((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r);
+        return func(f1, f2);
     }
-    void update(ll v, ll tl, ll tr, ll i) {
-        if (tree.size() <= v || v < 0) return;
+    void update(ll v, ll tl, ll tr, ll i, ll val) {
+        if ((MAXN << 2) <= v || v < 0) return;
         if (tl == tr) {
-            if (choice != "Pair") tree[v] = a[i];
-            else pair_tree[v] = b[i];
+            t[v] = a[i] = val;
             return;
         }
         ll M = (tl + tr) >> 1;
-        i <= M ? update((v << 1), tl, M, i) : update((v << 1) + 1, M + 1, tr, i);
-        if (choice == "Pair") {
-            if (!element_of_pair)
-                pair_tree[v].first = func(pair_tree[(v << 1)].first, pair_tree[(v << 1) + 1].first);
-            else
-                pair_tree[v].second = func(pair_tree[(v << 1)].second, pair_tree[(v << 1) + 1].second);
-        } else {
-            tree[v] = func(tree[(v << 1)], tree[(v << 1) + 1]);
-        }
+        i <= M ? update((v << 1), tl, M, i, val) : update((v << 1) + 1, M + 1, tr, i, val);
+        t[v] = func(t[(v << 1)], t[(v << 1) + 1]);
     }
-    void print(void) {
-        for (ll i = 1, m = 1; i < tree.size(); m <<= 1) {
-            for (ll k = 1; i < tree.size() && k <= m; ++k) {
-                if (choice == "Pair")
-                    cout << pair_tree[i].first << " " << pair_tree[i].second << '\t';
-                else
-                    cout << tree[i] << '\t';
+    void update(ll v, ll tl, ll tr, ll l, ll r, ll val) {
+        if (lazy[v] != 0) {
+            t[v] += lazy[v];
+            if (tl != tr)
+                push(v, lazy[v]);
+            lazy[v] = 0;
+        }
+        if (tl > tr || tl > l || tr < l || l > r) return;
+        if (tl >= l && tr <= r) {
+            t[v] += val;
+            if (tl != tr)
+                push(v, val);
+            return;
+        }
+        ll tm = (tl + tr) >> 1;
+        update((v << 1), tl, tm, l, min(tm, r), val);
+        update((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r, val);
+        t[v] = func(t[v << 1], t[(v << 1) + 1]);
+        return;
+    }
+    void print_Tree(void) {
+        for (ll i = 1, m = 1; i < (a.size() << 2); m <<= 1) {
+            for (ll k = 1; i < (a.size() << 2) && k <= m; ++k) {
+                cout << t[i] << '\t';
                 ++i;
             }
             cout << endl;
         }
         cout << endl;
-        if (choice == "Pair") {
-            for (auto [i, j] : b)
-                cout << i << " " << j << endl;
-            cout << endl;
-        } else {
-            for (ll i : a) cout << i << " ";
-            cout << endl;
-        }
     }
 };
 
